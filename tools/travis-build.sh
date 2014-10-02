@@ -20,3 +20,5 @@ ${EJD2CTL} ping
 make test_deps
 ${TOOLS}/set-odbc-password test ${TRAVIS_DB_PASSWORD}
 
+cd ${BASE}/test/ejabberd_tests && make prepare
+
