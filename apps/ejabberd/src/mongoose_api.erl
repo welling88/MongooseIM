@@ -127,11 +127,16 @@ handle_get(Serializer, Req, #state{opts=Opts, bindings=Bindings}=State) ->
 handle_unsafe(Deserializer, Req, State) ->
     {Method, Req1} = cowboy_req:method(Req),
     {ok, Body, Req2} = cowboy_req:body(Req1),
-    case Deserializer:deserialize(Body) of
-        {ok, Data} ->
-            handle_unsafe(Method, Data, Req2, State);
-        {error, _Reason} ->
-            error_response(bad_request, Req2, State)
+    case Body of
+        <<>> ->
+            handle_unsafe(Method, <<>>, Req2, State);
+        _ ->
+            case Deserializer:deserialize(Body) of
+                {ok, Data} ->
+                    handle_unsafe(Method, Data, Req2, State);
+                {error, _Reason} ->
+                    error_response(bad_request, Req2, State)
+            end
     end.
 
 handle_unsafe(Method, Data, Req, #state{opts=Opts, bindings=Bindings}=State) ->
