@@ -24,6 +24,7 @@
          rest_terminate/2]).
 
 -export([allowed_methods/2,
+         resource_exists/2,
          content_types_provided/2,
          content_types_accepted/2,
          delete_resource/2]).
@@ -88,6 +89,16 @@ allowed_methods(Req, #state{bindings=Bindings, opts=Opts}=State) ->
             allowed_methods_from_exports(Req, State);
         Methods ->
             allowed_methods_from_module(Methods, Req, State)
+    end.
+
+resource_exists(Req, #state{bindings=Bindings, opts=Opts}=State) ->
+    {MethodBin, Req1} = cowboy_req:method(Req),
+    Method = binary_to_method(MethodBin),
+    case call(handle_exists, [Method, Bindings, Opts], State) of
+        no_call ->
+            {true, Req1, State};
+        Exists ->
+            {Exists, Req1, State}
     end.
 
 content_types_provided(Req, State) ->
@@ -226,6 +237,14 @@ method_to_binary(delete)  -> <<"DELETE">>;
 method_to_binary(patch)   -> <<"PATCH">>;
 method_to_binary(options) -> <<"OPTIONS">>;
 method_to_binary(head)    -> <<"HEAD">>.
+
+binary_to_method(<<"GET">>)     -> get;
+binary_to_method(<<"POST">>)    -> post;
+binary_to_method(<<"PUT">>)     -> put;
+binary_to_method(<<"DELETE">>)  -> delete;
+binary_to_method(<<"PATCH">>)   -> patch;
+binary_to_method(<<"OPTIONS">>) -> options;
+binary_to_method(<<"HEAD">>)    -> head.
 
 method_callback(<<"POST">>) -> handle_post;
 method_callback(<<"PUT">>)  -> handle_put;
