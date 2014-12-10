@@ -171,6 +171,9 @@ handle_result({ok, Result}, Serializer, Req, State) ->
 handle_result(Other, _Serializer, Req, State) ->
     handle_result(Other, Req, State).
 
+handle_result(async, Req, State) ->
+    {ok, Req1} = cowboy_req:reply(202, Req),
+    {halt, Req1, State};
 handle_result(ok, Req, State) ->
     {true, Req, State};
 handle_result({error, Error}, Req, State) ->
