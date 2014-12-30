@@ -34,6 +34,16 @@ serialize(Data) ->
 do_serialize(Data) ->
     exml:to_iolist(prepare_xmlel(Data)).
 
+prepare_xmlel(#xmlel{}=Element) ->
+    Element;
+prepare_xmlel(#xmlcdata{}=CData) ->
+    CData;
+prepare_xmlel({ElementName, #xmlel{}=Element}) ->
+    #xmlel{name = to_iolist_compliant(ElementName),
+           children = [Element]};
+prepare_xmlel({ElementName, #xmlcdata{}=Element}) ->
+    #xmlel{name = to_iolist_compliant(ElementName),
+           children = [Element]};
 prepare_xmlel({ElementName, List}) when is_list(List) ->
     {Attrs, Children} = lists:partition(fun is_attribute/1, List),
     #xmlel{name = to_iolist_compliant(ElementName),
@@ -47,6 +57,10 @@ prepare_xmlel({Key, Value}) ->
 prepare_xmlel(Other) ->
     #xmlel{name = to_iolist_compliant(Other)}.
 
+is_attribute({_, #xmlcdata{}}) ->
+    false;
+is_attribute({_, #xmlel{}}) ->
+    false;
 is_attribute({_, List}) when is_list(List) ->
     false;
 is_attribute({_, _}) ->

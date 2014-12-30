@@ -21,6 +21,8 @@
 -export([serialize/1,
          deserialize/1]).
 
+-include_lib("exml/include/exml.hrl").
+
 %%--------------------------------------------------------------------
 %% mongoose_api_format callbacks
 %%--------------------------------------------------------------------
@@ -50,6 +52,17 @@ do_deserialize(Other) ->
 do_serialize(Data) ->
     mochijson2:encode(prepare_struct(Data)).
 
+prepare_struct(#xmlel{name=Name, attrs=Attrs, children=Children}) ->
+    ProplistChildren = [prepare_struct(Child) || Child <- Children],
+    Attrs1 = case ProplistChildren of
+                 [] ->
+                     Attrs;
+                 _ ->
+                     Attrs ++ [{children, ProplistChildren}]
+             end,
+    {struct, [{Name, {struct, Attrs1}}]};
+prepare_struct(#xmlcdata{content=Content}) ->
+    Content;
 prepare_struct({Key, Value}) ->
     {struct, [{Key, prepare_struct(Value)}]};
 prepare_struct(List) when is_list(List) ->

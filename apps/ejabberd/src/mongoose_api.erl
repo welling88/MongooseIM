@@ -74,8 +74,10 @@ rest_init(Req, Opts) ->
     case lists:keytake(handler, 1, Opts) of
         {value, {handler, Handler}, Opts1} ->
             {Bindings, Req1} = cowboy_req:bindings(Req),
-            State = #state{handler=Handler, opts=Opts1, bindings=Bindings},
-            {ok, Req1, State};
+            {QSVals, Req2} = cowboy_req:qs_vals(Req1),
+            Bindings1 = Bindings ++ QSVals,
+            State = #state{handler=Handler, opts=Opts1, bindings=Bindings1},
+            {ok, Req2, State};
         false ->
             erlang:throw(no_handler_defined)
     end.

@@ -47,6 +47,9 @@
          remove_user/2,
          filter_packet/1]).
 
+%% internal exports
+-export([lookup_messages/13]).
+
 %% Utils
 -export([create_dump_file/2,
          restore_dump_file/3]).
