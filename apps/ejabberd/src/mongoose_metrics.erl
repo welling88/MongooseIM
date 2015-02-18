@@ -16,6 +16,7 @@
 -module(mongoose_metrics).
 
 -include("ejabberd.hrl").
+-type exometer_metric() :: [term()].
 
 %% API
 -export([update/2,
@@ -26,14 +27,14 @@
          get_aggregated_values/1,
          init_predefined_host_metrics/1,
          create_global_metrics/0,
-         create_generic_hook_metric/2,
+         create_generic_hook_metrics/2,
          increment_generic_hook_metric/2,
          remove_host_metrics/1,
          remove_all_metrics/0]).
 
 -spec update({term(), term()}, term()) -> no_return().
-update(Name, Change) ->
-    exometer:update(tuple_to_list(Name), Change).
+update(HostMetric, Change) ->
+    exometer:update(HostMetric, Change).
 
 get_host_metric_names(Host) ->
     [MetricName || {[_Host, MetricName | _], _, _} <- exometer:find_entries([Host])].
@@ -41,8 +42,8 @@ get_host_metric_names(Host) ->
 get_global_metric_names() ->
     get_host_metric_names(global).
 
-get_metric_value({Host, Name}) ->
-    exometer:get_value([Host, Name]).
+get_metric_value(HostMetric) when is_tuple(HostMetric) ->
+    exometer:get_value(exo_fmt(HostMetric)).
 
 get_metric_values(Host) ->
     exometer:get_values([Host]).
@@ -56,20 +57,21 @@ init_predefined_host_metrics(Host) ->
     metrics_hooks(add, Host),
     ok.
 
--spec create_generic_hook_metric(ejabberd:lserver(), atom()) -> no_return().
-create_generic_hook_metric(Host, Hook) ->
-    do_create_generic_hook_metric({Host, filter_hook(Hook)}).
+-spec create_generic_hook_metrics(ejabberd:lserver(), atom()) -> no_return().
+create_generic_hook_metrics(Host, Hook) ->
+    do_create_generic_hook_metrics(exo_fmt({Host, filter_hook(Hook)})).
 
 -spec increment_generic_hook_metric(ejabberd:lserver(), atom()) -> no_return().
 increment_generic_hook_metric(Host, Hook) ->
-    do_increment_generic_hook_metric({Host, filter_hook(Hook)}).
+    do_increment_generic_hook_metric(exo_fmt({Host, filter_hook(Hook)})).
 
-do_create_generic_hook_metric({_, skip}) ->
+do_create_generic_hook_metrics([_, skip | _ ]) ->
     ok;
-do_create_generic_hook_metric(MetricName) ->
-    ensure_metric(MetricName, spiral).
+do_create_generic_hook_metrics(MetricName) ->
+    ensure_metric(failed(MetricName), spiral),
+    ensure_metric(succeeded(MetricName), spiral).
 
-do_increment_generic_hook_metric({_, skip}) ->
+do_increment_generic_hook_metric([_, skip | _ ]) ->
     ok;
 do_increment_generic_hook_metric(MetricName) ->
     update(MetricName, 1).
@@ -136,10 +138,10 @@ create_metrics(Host) ->
     lists:foreach(fun(Name) -> ensure_metric(Name, counter) end,
                   get_total_counters(Host)).
 
-ensure_metric({Host, Metric}, Type) ->
-    case exometer:info([Host, Metric], type) of
+ensure_metric(HostMetric, Type) ->
+    case exometer:info(HostMetric, type) of
         Type -> {ok, already_present};
-        undefined -> exometer:new([Host, Metric], Type)
+        undefined -> exometer:new(HostMetric, Type)
     end.
 
 -spec metrics_hooks('add' | 'delete', ejabberd:server()) -> 'ok'.
@@ -205,19 +207,18 @@ metrics_hooks(Op, Host) ->
 ]).
 
 
--spec get_general_counters(ejabberd:server()) -> [{ejabberd:server(), atom()}].
+-spec get_general_counters(ejabberd:server()) -> [exometer_metric()].
 get_general_counters(Host) ->
-    [{Host, Counter} || Counter <- ?GENERAL_COUNTERS].
+    [[Host, Counter] || Counter <- ?GENERAL_COUNTERS].
 
 -define (TOTAL_COUNTERS, [
     sessionCount
 ]).
 
 
--spec get_total_counters(ejabberd:server()) ->
-    [{ejabberd:server(),'sessionCount'}].
+-spec get_total_counters(ejabberd:server()) -> [exometer_metric()].
 get_total_counters(Host) ->
-    [{Host, Counter} || Counter <- ?TOTAL_COUNTERS].
+    [[Host, Counter] || Counter <- ?TOTAL_COUNTERS].
 
 -define(GLOBAL_COUNTERS,
         [{[global, totalSessionCount],
@@ -232,3 +233,8 @@ get_total_counters(Host) ->
 create_global_metrics() ->
     lists:foreach(fun({Metric, Spec}) -> exometer:new(Metric, Spec) end,
                   ?GLOBAL_COUNTERS).
+
+failed(MetricName) when is_list(MetricName) -> MetricName ++ [failed].
+succeeded(MetricName) when is_list(MetricName) -> MetricName ++ [successful].
+
+exo_fmt({Host,Metric}) -> [Host, Metric].

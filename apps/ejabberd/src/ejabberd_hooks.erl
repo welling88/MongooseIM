@@ -173,7 +173,7 @@ handle_call({add, Hook, Host, Module, Function, Seq}, _From, State) ->
                 [] ->
                     NewLs = [{Seq, Module, Function}],
                     ets:insert(hooks, {{Hook, Host}, NewLs}),
-                    mongoose_metrics:create_generic_hook_metric(Host, Hook),
+                    mongoose_metrics:create_generic_hook_metrics(Host, Hook),
                     ok
             end,
     {reply, Reply, State};
