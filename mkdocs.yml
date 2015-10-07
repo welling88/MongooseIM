@@ -38,6 +38,7 @@ pages:
       - 'mod_stream_management': 'modules/mod_stream_management.md'
       - 'mod_vcard': 'modules/mod_vcard.md'
       - 'mod_websockets': 'modules/mod_websockets.md'
+      - 'mod_auth_token': 'modules/mod_auth_token.md'
   - 'Operation and maintenance':
       - 'Cluster configuration and node management': 'operation-and-maintenance/Cluster-configuration-and-node-management.md'
       - 'Logging & monitoring': 'operation-and-maintenance/Logging-&-monitoring.md'
