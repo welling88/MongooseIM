@@ -95,11 +95,11 @@ check_password(LUser, LServer, Password, Digest, DigestGen) ->
     try odbc_queries:get_password(LServer, Username) of
         %% Account exists, check if password is valid
         {selected, [<<"password">>, <<"pass_details">>], [{Passwd, null}]} ->
-            ejabberd_auth:check_digest(Digest, DigestGen, Password, Passwd);
+            ejabberd_auth:check_digest(Digest, DigestGen, Passwd);
         {selected, [<<"password">>, <<"pass_details">>], [{_Passwd, PassDetails}]} ->
             case scram:deserialize(PassDetails) of
                 {ok, #scram{} = Scram} ->
-                    scram:check_digest(Scram, Digest, DigestGen, Password);
+                    scram:check_digest(Scram, Digest, DigestGen);
                 _ ->
                     false
             end;

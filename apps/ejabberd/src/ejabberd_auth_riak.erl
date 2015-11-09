@@ -92,9 +92,9 @@ check_password(LUser, LServer, Password, Digest, DigestGen) ->
         false ->
             false;
         #scram{} = Scram ->
-            scram:check_digest(Scram, Digest, DigestGen, Password);
+            scram:check_digest(Scram, Digest, DigestGen);
         PassRiak when is_binary(PassRiak) ->
-            ejabberd_auth:check_digest(Digest, DigestGen, Password, PassRiak)
+            ejabberd_auth:check_digest(Digest, DigestGen, PassRiak)
     end.
 
 -spec try_register(User :: ejabberd:luser(),

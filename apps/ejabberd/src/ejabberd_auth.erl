@@ -54,7 +54,7 @@
          entropy/1
         ]).
 
--export([check_digest/4]).
+-export([check_digest/3]).
 
 -export([auth_modules/1]).
 
@@ -217,10 +217,11 @@ do_check_password_loop([AuthModule | AuthModules], Args) ->
             do_check_password_loop(AuthModules, Args)
     end.
 
--spec check_digest(binary(), fun(), binary(), binary()) -> boolean().
-check_digest(<<>>, _, <<>>, _) ->
-    false; %%empty digest and password
-check_digest(Digest, DigestGen, _Password, Passwd) ->
+-spec check_digest(Digest :: binary(), DigestGen :: fun(),
+                   DbPassword :: binary()) -> boolean().
+check_digest(<<>>, _, _) ->
+    false; %%empty digest
+check_digest(Digest, DigestGen, Passwd) ->
     Digest == DigestGen(Passwd).
 
 -spec set_password(User :: ejabberd:user(),

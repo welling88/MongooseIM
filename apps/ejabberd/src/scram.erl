@@ -48,7 +48,7 @@
          password_to_scram/1,
          password_to_scram/2,
          check_password/2,
-         check_digest/4
+         check_digest/3
         ]).
 
 -export([serialize/1, deserialize/1]).
@@ -182,10 +182,10 @@ scram_to_tuple(Scram) ->
      base64:decode(Scram#scram.salt),
      Scram#scram.iterationcount}.
 
--spec check_digest(scram(), binary(), fun(), binary()) -> boolean().
-check_digest(#scram{storedkey = StoredKey}, Digest, DigestGen, Password) ->
+-spec check_digest(scram(), binary(), fun()) -> boolean().
+check_digest(#scram{storedkey = StoredKey}, Digest, DigestGen) ->
     Passwd = base64:decode(StoredKey),
-    ejabberd_auth:check_digest(Digest, DigestGen, Password, Passwd).
+    ejabberd_auth:check_digest(Digest, DigestGen, Passwd).
 
 -ifdef(no_crypto_hmac).
 crypto_hmac(sha, Key, Data) ->

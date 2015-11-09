@@ -94,12 +94,12 @@ check_password(LUser, LServer, Password, Digest, DigestGen) ->
                 true ->
                     case scram:deserialize(GotPasswd) of
                         {ok, #scram{} = Scram} ->
-                            scram:check_digest(Scram, Digest, DigestGen, Password);
+                            scram:check_digest(Scram, Digest, DigestGen);
                         _ ->
                             false
                     end;
                 false ->
-                    ejabberd_auth:check_digest(Digest, DigestGen, Password, GotPasswd)
+                    ejabberd_auth:check_digest(Digest, DigestGen, GotPasswd)
             end
     end.
 
@@ -226,7 +226,7 @@ remove_user_req(LUser, LServer, Password, Method) ->
     {ok, BodyOrCreated :: binary() | created} | {error, invalid_jid | http_error_atom() | binary()}.
 make_req(_, _, LUser, LServer, _) when LUser == error orelse LServer == error ->
     {error, invalid_jid};
-make_req(Method, Path, LUser, LServer, Password) -> 
+make_req(Method, Path, LUser, LServer, Password) ->
     AuthOpts = ejabberd_config:get_local_option(auth_opts, LServer),
     BasicAuth = case lists:keyfind(basic_auth, 1, AuthOpts) of
                     {_, BasicAuth0} -> BasicAuth0;
