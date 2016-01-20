@@ -44,6 +44,9 @@
 {suites, "tests", websockets_SUITE}.
 {config, ["test.config"]}.
 {logdir, "ct_report"}.
-{ct_hooks, [ct_tty_hook, ct_mongoose_hook]}.
+{ct_hooks, [ct_tty_hook, ct_mongoose_hook,
+    {ct_mongoose_log_hook, [ejabberd_node, ejabberd_cookie]},
+    {ct_mongoose_log_hook, [ejabberd2_node, ejabberd_cookie]}
+    ]}.
 %%To enable printing group and case enters on server side
 %%{ct_hooks, [{ct_tty_hook, [print_group, print_case]}]}.
