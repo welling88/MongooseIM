@@ -278,7 +278,7 @@ rsm_cases() ->
        pagination_offset5_opt_count_all].
 
 suite() ->
-    escalus:suite().
+    [{timetrap,{seconds,30}}|escalus:suite()].
 
 init_per_suite(Config) ->
     [{escalus_user_db, {module, escalus_ejabberd}}

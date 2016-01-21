@@ -38,7 +38,7 @@ groups() ->
      {ejabberdctl, [], [set_master_test]}].
 
 suite() ->
-    escalus:suite().
+    [{timetrap,{seconds,30}}|escalus:suite()].
 
 %%--------------------------------------------------------------------
 %% Init & teardown

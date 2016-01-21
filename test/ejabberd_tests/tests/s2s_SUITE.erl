@@ -69,7 +69,7 @@ negative() ->
     [timeout_waiting_for_message].
 
 suite() ->
-    escalus:suite().
+    [{timetrap,{seconds,30}}|escalus:suite()].
 
 %%%===================================================================
 %%% Init & teardown

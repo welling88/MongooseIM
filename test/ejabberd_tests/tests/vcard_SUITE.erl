@@ -84,7 +84,7 @@ ro_no_search_tests() ->
      search_not_in_service_discovery].
 
 suite() ->
-    escalus:suite().
+    [{timetrap,{seconds,30}}|escalus:suite()].
 
 %%--------------------------------------------------------------------
 %% Init & teardown

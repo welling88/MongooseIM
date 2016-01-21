@@ -32,7 +32,7 @@ groups() ->
     [{mod_offline_tests, [sequence], all_tests()}].
 
 suite() ->
-    escalus:suite().
+    [{timetrap,{seconds,30}}|escalus:suite()].
 
 %%%===================================================================
 %%% Init & teardown

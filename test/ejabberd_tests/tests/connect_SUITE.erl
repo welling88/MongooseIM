@@ -68,7 +68,7 @@ test_cases() ->
      should_not_send_other_features_with_starttls_required].
 
 suite() ->
-    escalus:suite().
+    [{timetrap,{seconds,30}}|escalus:suite()].
 
 %%--------------------------------------------------------------------
 %% Init & teardown

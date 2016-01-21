@@ -45,7 +45,8 @@ groups() ->
        user_should_be_disconnected_from_removed_domain]}].
 
 suite() ->
-    [{required, ejabberd_reloaded_domain} | escalus:suite()].
+    [{timetrap,{seconds,30}},
+     {required, ejabberd_reloaded_domain} | escalus:suite()].
 
 %%--------------------------------------------------------------------
 %% Init & teardown
