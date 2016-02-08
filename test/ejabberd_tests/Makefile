@@ -23,6 +23,7 @@ quicktest: $(PREPARE)
 		-pa `pwd`/tests \
 		    `pwd`/ebin \
 			`pwd`/deps/*/ebin \
+			`pwd`/deps/platypus/apps/*/ebin \
 		$(ADD_OPTS) \
 		-s run_common_test main test=quick spec=$(TESTSPEC)
 
@@ -31,6 +32,7 @@ cover_quicktest: $(PREPARE)
 		-pa `pwd`/tests \
 		    `pwd`/ebin \
 			`pwd`/deps/*/ebin \
+			`pwd`/deps/platypus/apps/*/ebin \
 		$(ADD_OPTS) \
 		-s run_common_test main test=quick spec=$(TESTSPEC) cover=true
 
@@ -39,6 +41,7 @@ test_preset: $(PREPARE)
 		-pa `pwd`/tests \
 		    `pwd`/ebin \
 			`pwd`/deps/*/ebin \
+			`pwd`/deps/platypus/apps/*/ebin \
 		$(ADD_OPTS) \
 		-s run_common_test main test=full spec=$(TESTSPEC) preset=$(PRESET)
 
@@ -47,6 +50,7 @@ cover_test_preset: $(PREPARE)
 		-pa `pwd`/tests \
 		    `pwd`/ebin \
 			`pwd`/deps/*/ebin \
+			`pwd`/deps/platypus/apps/*/ebin \
 		$(ADD_OPTS) \
 		-s run_common_test main test=full spec=$(TESTSPEC) preset=$(PRESET) cover=true
 
@@ -55,6 +59,7 @@ test: $(PREPARE)
 		-pa `pwd`/tests \
 		    `pwd`/ebin \
 			`pwd`/deps/*/ebin \
+			`pwd`/deps/platypus/apps/*/ebin \
 		$(ADD_OPTS) \
 		-s run_common_test main test=full spec=$(TESTSPEC)
 
@@ -63,6 +68,7 @@ cover_test: $(PREPARE)
 		-pa `pwd`/tests \
 		    `pwd`/ebin \
 			`pwd`/deps/*/ebin \
+			`pwd`/deps/platypus/apps/*/ebin \
 		$(ADD_OPTS) \
 		-s run_common_test main test=full spec=$(TESTSPEC) cover=true
 
@@ -76,17 +82,15 @@ console: compile
 		-pa `pwd`/tests \
 		    `pwd`/ebin \
 			`pwd`/deps/*/ebin \
+			`pwd`/deps/platypus/apps/*/ebin \
 
 compile: get-deps
 	./rebar compile
 
-get-deps: rebar
+get-deps:
 	./rebar get-deps
 
-clean: rebar
+clean:
 	rm -rf tests/*.beam
 	./rebar clean
 
-rebar:
-	wget http://cloud.github.com/downloads/basho/rebar/rebar
-	chmod u+x rebar

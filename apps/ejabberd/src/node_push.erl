@@ -28,7 +28,7 @@
 -author('christian@rechenwerk.net').
 
 -include("pubsub.hrl").
--include("logger.hrl").
+-include("ejabberd.hrl").
 -include("jlib.hrl").
 
 -behaviour(gen_pubsub_node).
@@ -69,10 +69,10 @@
 
 
 init(Host, ServerHost, Opts) ->
-    node_hometree:init(Host, ServerHost, Opts).
+    node_flat:init(Host, ServerHost, Opts).
 
 terminate(Host, ServerHost) ->
-    node_hometree:terminate(Host, ServerHost).
+    node_flat:terminate(Host, ServerHost).
 
 options() ->
     [{deliver_payloads, true},
@@ -90,13 +90,12 @@ options() ->
      {max_payload_size, ?MAX_PAYLOAD_SIZE},
      {send_last_published_item, never},
      {deliver_notifications, true},
-     {presence_based_delivery, false},
-     {secret, [<<"">>]}].
+     {presence_based_delivery, false}].
 
 features() ->
     [<<"create-nodes">>,
-     <<"delete-nodes">>,
      <<"delete-items">>,
+     <<"delete-nodes">>,
      <<"instant-nodes">>,
      <<"modify-affiliations">>,
      <<"multi-subscribe">>,
@@ -114,17 +113,19 @@ create_node_permission(Host, ServerHost, Node, ParentNode, Owner, Access) ->
     node_flat:create_node_permission(Host, ServerHost, Node, ParentNode, Owner, Access).
 
 create_node(Nidx, Owner) ->
-    node_hometree:create_node(Nidx, Owner).
+    Res = node_flat:create_node(Nidx, Owner),
+    set_affiliation(Nidx, Owner, 'publish_only'), % Not sure about this
+    Res.
 
 delete_node(Removed) ->
-    node_hometree:delete_node(Removed).
+    node_flat:delete_node(Removed).
 
 subscribe_node(Nidx, Sender, Subscriber, AccessModel, SendLast, PresenceSubscription, RosterGroup, Options) ->
     node_flat:subscribe_node(Nidx, Sender, Subscriber, AccessModel, SendLast,
                              PresenceSubscription, RosterGroup, Options).
 
 unsubscribe_node(Nidx, Sender, Subscriber, SubID) ->
-    node_hometree:unsubscribe_node(Nidx, Sender, Subscriber, SubID).
+    node_flat:unsubscribe_node(Nidx, Sender, Subscriber, SubID).
 
 publish_item(Nidx, Publisher, Model, MaxItems, ItemId, Payload, PubOpts) ->
     %% mod_push's internal app server must use nodetree_virtual and receives
@@ -151,88 +152,77 @@ publish_item(Nidx, Publisher, Model, MaxItems, ItemId, Payload, PubOpts) ->
             end;
 
         false ->
-            #pubsub_node{options = Options} = nodetree_tree:get_node(Nidx),
-            ?DEBUG("+++++ Node options = ~p", [Options]),
-            Secret = proplists:get_value(secret, Options, <<"">>),
-            case mod_push:check_secret(Secret, PubOpts) of
-                true ->
-                    ?DEBUG("+++++ right secret!", []),
-                    Result =
-                    node_hometree:publish_item(Nidx, Publisher, Model, MaxItems,
-                                               ItemId, Payload, PubOpts),
-                    ?DEBUG("+++++ node_hometree:publish_item returned ~p",
-                           [Result]),
-                    Result;
-                false ->
-                    ?DEBUG("++++++ wrong secret, should be ~p", [Secret]),
-                    {error, ?ERR_FORBIDDEN}
-            end
+            Result =
+                node_flat:publish_item(Nidx, Publisher, Model, MaxItems, ItemId, Payload, PubOpts),
+            ?DEBUG("+++++ node_flat:publish_item returned ~p",
+                   [Result]),
+            Result
     end.
 
 remove_extra_items(Nidx, MaxItems, ItemIds) ->
-    node_hometree:remove_extra_items(Nidx, MaxItems, ItemIds).
+    node_flat:remove_extra_items(Nidx, MaxItems, ItemIds).
 
 delete_item(Nidx, Publisher, PublishModel, ItemId) ->
-    node_hometree:delete_item(Nidx, Publisher, PublishModel, ItemId).
+    node_flat:delete_item(Nidx, Publisher, PublishModel, ItemId).
 
 purge_node(Nidx, Owner) ->
-    node_hometree:purge_node(Nidx, Owner).
+    node_flat:purge_node(Nidx, Owner).
 
 get_entity_affiliations(Host, Owner) ->
-    node_hometree:get_entity_affiliations(Host, Owner).
+    node_flat:get_entity_affiliations(Host, Owner).
 
 get_node_affiliations(Nidx) ->
-    node_hometree:get_node_affiliations(Nidx).
+    node_flat:get_node_affiliations(Nidx).
 
 get_affiliation(Nidx, Owner) ->
-    node_hometree:get_affiliation(Nidx, Owner).
+    node_flat:get_affiliation(Nidx, Owner).
 
 set_affiliation(Nidx, Owner, Affiliation) ->
-    node_hometree:set_affiliation(Nidx, Owner, Affiliation).
+    node_flat:set_affiliation(Nidx, Owner, Affiliation).
 
 get_entity_subscriptions(Host, Owner) ->
-    node_hometree:get_entity_subscriptions(Host, Owner).
+    node_flat:get_entity_subscriptions(Host, Owner).
 
 get_node_subscriptions(Nidx) ->
-    node_hometree:get_node_subscriptions(Nidx).
+    node_flat:get_node_subscriptions(Nidx).
 
 get_subscriptions(Nidx, Owner) ->
-    node_hometree:get_subscriptions(Nidx, Owner).
+    node_flat:get_subscriptions(Nidx, Owner).
 
 set_subscriptions(Nidx, Owner, Subscription, SubId) ->
-    node_hometree:set_subscriptions(Nidx, Owner, Subscription, SubId).
+    node_flat:set_subscriptions(Nidx, Owner, Subscription, SubId).
 
 get_pending_nodes(Host, Owner) ->
-    node_hometree:get_pending_nodes(Host, Owner).
+    node_flat:get_pending_nodes(Host, Owner).
 
 get_states(Nidx) ->
-    node_hometree:get_states(Nidx).
+    node_flat:get_states(Nidx).
 
 get_state(Nidx, JID) ->
-    node_hometree:get_state(Nidx, JID).
+    node_flat:get_state(Nidx, JID).
 
 set_state(State) ->
-    node_hometree:set_state(State).
+    node_flat:set_state(State).
 
 get_items(Nidx, From, RSM) ->
-    node_hometree:get_items(Nidx, From, RSM).
+    node_flat:get_items(Nidx, From, RSM).
 
 get_items(Nidx, JID, AccessModel, PresenceSubscription, RosterGroup, SubId, RSM) ->
-    node_hometree:get_items(Nidx, JID, AccessModel,
+    node_flat:get_items(Nidx, JID, AccessModel,
     PresenceSubscription, RosterGroup, SubId, RSM).
 
 get_item(Nidx, ItemId) ->
-    node_hometree:get_item(Nidx, ItemId).
+    node_flat:get_item(Nidx, ItemId).
 
 get_item(Nidx, ItemId, JID, AccessModel, PresenceSubscription, RosterGroup, SubId) ->
-    node_hometree:get_item(Nidx, ItemId, JID, AccessModel, PresenceSubscription,
+    node_flat:get_item(Nidx, ItemId, JID, AccessModel, PresenceSubscription,
                            RosterGroup, SubId).
 
 set_item(Item) ->
-    node_hometree:set_item(Item).
+    node_flat:set_item(Item).
 
 get_item_name(Host, Node, Id) ->
-    node_hometree:get_item_name(Host, Node, Id).
+    node_flat:get_item_name(Host, Node, Id).
 
 node_to_path(Node) -> node_flat:node_to_path(Node).
 

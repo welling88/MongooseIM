@@ -51,6 +51,7 @@ src/epam
 *.beam
 src/eldap_filter_yecc.erl
 erl_crash.dump
+*.d
 *.o
 ELDAPv3.asn1db
 ELDAPv3.erl
@@ -75,6 +76,7 @@ apps/ejabberd/include/XmppAddr.hrl
 apps/ejabberd/include/EJABBERD-MIB.hrl
 apps/ejabberd/priv/mibs/EJABBERD-MIB.bin
 apps/ejabberd/ebin/ejabberd.app
+/etc/
 
 # Dialyzer
 .mongooseim_combo_dialyzer.plt

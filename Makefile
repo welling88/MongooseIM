@@ -53,8 +53,8 @@ test_preset: test_deps
 
 run: deps compile quickrun
 
-quickrun: etc/ejabberd.cfg etc/app.config certs_priv
-	erl -sname mongooseim@localhost -setcookie ejabberd \
+quickrun: etc/ejabberd.cfg etc/app.config etc/vm.args certs_priv
+	erl -args_file etc/vm.args \
 		-pa ebin deps/*/ebin apps/*/ebin -config etc/app.config \
 		-s mongooseim
 
@@ -65,6 +65,10 @@ etc/ejabberd.cfg:
 etc/app.config:
 	@mkdir -p $(@D)
 	tools/generate_cfg.es etc/app.config rel/files/app.config
+
+etc/vm.args:
+	@mkdir -p $(@D)
+	tools/generate_cfg.es etc/vm.args rel/files/vm.args
 
 cover_test: test_deps
 	cd test/ejabberd_tests; make cover_test
@@ -93,7 +97,7 @@ configure.out:
 
 devrel: certs $(DEVNODES)
 
-$(DEVNODES): rebar deps compile deps_dev
+$(DEVNODES): rebar deps compile deps_dev configure.out
 	@echo "building $@"
 	(cd rel && ../rebar generate -f target_dir=../dev/mongooseim_$@ overlay_vars=./reltool_vars/$@_vars.config)
 	cp -R `dirname $(shell ./readlink.sh $(shell which erl))`/../lib/tools-* dev/mongooseim_$@/lib/

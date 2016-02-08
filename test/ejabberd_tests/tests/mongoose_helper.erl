@@ -8,6 +8,8 @@
          total_active_users/0,
          total_privacy_items/0,
          total_private_items/0,
+         total_push_users/0,
+         total_push_registrations/0,
          total_vcard_items/0,
          total_roster_items/0]).
 
@@ -38,6 +40,14 @@ total_privacy_items() ->
 -spec total_private_items() -> integer() | false.
 total_private_items() ->
     generic_count(mod_private_backend).
+
+-spec total_push_users() -> integer() | false.
+total_push_users() ->
+    generic_count(mod_push_backend).
+
+-spec total_push_registrations() -> integer() | false.
+total_push_registrations() ->
+    generic_count(mod_push_app_server_backend).
 
 -spec total_vcard_items() -> integer() | false.
 total_vcard_items() ->
@@ -108,6 +118,9 @@ generic_count_backend(mod_private_mnesia) -> count_wildpattern(private_storage);
 generic_count_backend(mod_private_odbc) -> count_odbc(<<"private_storage">>);
 generic_count_backend(mod_private_mysql) -> count_odbc(<<"private_storage">>);
 generic_count_backend(mod_private_riak) -> count_riak(<<"private">>);
+generic_count_backend(mod_push_app_server_mnesia) -> lists:max(
+    [ count_wildpattern(T) || T <- [push_registration_key_username, push_registration_key_node] ]);
+generic_count_backend(mod_push_mnesia) -> count_wildpattern(push_user);
 generic_count_backend(mod_vcard_mnesia) -> count_wildpattern(vcard);
 generic_count_backend(mod_vcard_odbc) -> count_odbc(<<"vcard">>);
 generic_count_backend(mod_vcard_riak) -> count_riak(<<"vcard">>);

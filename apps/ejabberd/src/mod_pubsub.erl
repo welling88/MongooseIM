@@ -73,7 +73,7 @@
 
 %% exports for console debug manual use
 -export([create_node/5, create_node/7, delete_node/3,
-    subscribe_node/5, unsubscribe_node/5, publish_item/6,
+    subscribe_node/5, unsubscribe_node/5, publish_item/7,
     delete_item/4, send_items/7, get_items/2, get_item/3,
     get_cached_item/2, get_configure/5, set_configure/5,
     tree_action/3, node_action/4, node_call/4]).
@@ -118,6 +118,8 @@
 	nodeOptions/0,
 	subOption/0,
 	subOptions/0,
+	pubOption/0,
+	pubOptions/0,
 	%%
 	affiliation/0,
 	subscription/0,
@@ -1291,7 +1293,15 @@ iq_pubsub(Host, ServerHost, From, IQType, SubEl, Lang, Access, Plugins) ->
 			[#xmlel{name = <<"item">>, attrs = ItemAttrs,
 					children = Payload}] ->
 			    ItemId = xml:get_attr_s(<<"id">>, ItemAttrs),
-			    publish_item(Host, ServerHost, Node, From, ItemId, Payload, Access);
+			    PubOpts = case Rest of
+				#xmlel{name = <<"publish-options">>,
+				       children = [#xmlel{name = <<"x">>,
+							  children = FieldElems}]} ->
+				    jlib:parse_xdata_fields(FieldElems);
+				_ ->
+				    []
+			     end,
+			     publish_item(Host, ServerHost, Node, From, ItemId, Payload, PubOpts, Access);
 			[] ->
 			    {error,
 				extended_error(?ERR_BAD_REQUEST, <<"item-required">>)};
@@ -2145,23 +2155,24 @@ unsubscribe_node(Host, Node, From, Subscriber, SubId) ->
 %%<li>The item contains more than one payload element or the namespace of the root payload element does not match the configured namespace for the node.</li>
 %%<li>The request does not match the node configuration.</li>
 %%</ul>
--spec(publish_item/6 ::
+-spec(publish_item/7 ::
     (
 	Host       :: mod_pubsub:host(),
 	ServerHost :: binary(),
 	Node       :: mod_pubsub:nodeId(),
 	Publisher  :: jid(),
 	ItemId     :: <<>> | mod_pubsub:itemId(),
-	Payload    :: mod_pubsub:payload())
+	Payload    :: mod_pubsub:payload(),
+	PubOpts    :: mod_pubsub:pubOptions())
     -> {result, [xmlel(),...]}
     %%%
     | {error, xmlel()}
     ).
-publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload) ->
-    publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload, all).
-publish_item(Host, ServerHost, Node, Publisher, <<>>, Payload, Access) ->
-    publish_item(Host, ServerHost, Node, Publisher, uniqid(), Payload, Access);
-publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload, Access) ->
+publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload, PubOpts) ->
+    publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload, PubOpts, all).
+publish_item(Host, ServerHost, Node, Publisher, <<>>, Payload, PubOpts, Access) ->
+    publish_item(Host, ServerHost, Node, Publisher, uniqid(), Payload, PubOpts, Access);
+publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload, PubOpts, Access) ->
     Action = fun (#pubsub_node{options = Options, type = Type, id = Nidx}) ->
 	    Features = plugin_features(Host, Type),
 	    PublishFeature = lists:member(<<"publish">>, Features),
@@ -2193,7 +2204,7 @@ publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload, Access) ->
 			extended_error(?ERR_BAD_REQUEST, <<"item-required">>)};
 		true ->
 		    node_call(Host, Type, publish_item,
-			[Nidx, Publisher, PublishModel, MaxItems, ItemId, Payload])
+			[Nidx, Publisher, PublishModel, MaxItems, ItemId, Payload, PubOpts])
 	    end
     end,
     Reply = [#xmlel{name = <<"pubsub">>,
@@ -2253,7 +2264,7 @@ publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload, Access) ->
 					    attrs = [{<<"xmlns">>, ?NS_PUBSUB}],
 					    children = [#xmlel{name = <<"create">>,
 						    attrs = [{<<"node">>, NewNode}]}]}]} ->
-			    publish_item(Host, ServerHost, NewNode, Publisher, ItemId, Payload);
+			    publish_item(Host, ServerHost, NewNode, Publisher, ItemId, Payload, PubOpts);
 			_ ->
 			    {error, ErrorItemNotFound}
 		    end;

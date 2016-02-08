@@ -91,7 +91,12 @@
 
 -type(subOptions() :: [mod_pubsub:subOption(),...]).
 
+-type(pubOption() ::
+    {Option::binary(),
+     Values::[binary()]
+}).
 
+-type(pubOptions() :: [mod_pubsub:pubOption()]).
 
 -type(affiliation() :: 'none'
                      | 'owner'

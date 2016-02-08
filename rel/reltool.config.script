@@ -20,6 +20,7 @@ BaseAppsToRun = [compiler,
                  exml,
                  cowboy,
                  fusco,
+                 ibrowse, %% FIXME: Make it configurable
                  exometer],
 
 AppsToRunIn = BaseAppsToRun ++ proplists:get_value(apps_to_run, Conf, []),

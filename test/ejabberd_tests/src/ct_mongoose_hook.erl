@@ -137,6 +137,8 @@ do_check_server_purity(_Suite) ->
         fun check_active_users/0,
         fun check_privacy/0,
         fun check_private/0,
+        fun check_push_users/0, % mod_push
+        fun check_push_registrations/0, % mod_push_app_server
         fun check_vcard/0,
         fun check_roster/0,
         fun check_carboncopy/0],
@@ -172,6 +174,12 @@ check_privacy() ->
 
 check_private() ->
     generic_via_mongoose_helper(total_private_items).
+
+check_push_users() ->
+    generic_via_mongoose_helper(total_push_users).
+
+check_push_registrations() ->
+    generic_via_mongoose_helper(total_push_registrations).
 
 check_vcard() ->
     generic_via_mongoose_helper(total_vcard_items).

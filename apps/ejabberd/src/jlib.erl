@@ -34,6 +34,7 @@
          make_invitation/3,
          make_config_change_message/1,
          make_voice_approval_form/3,
+         form_field/2,
          replace_from_to_attrs/3,
          replace_from_to/3,
          remove_attr/2,
@@ -54,6 +55,9 @@
          iq_query_or_response_info/1,
          iq_to_xml/1,
          parse_xdata_submit/1,
+         parse_xdata_fields/1,
+         filter_xdata_elements/1,
+         filter_xdata_elements/2,
          timestamp_to_xml/4,
          timestamp_to_mam_xml/4,
          timestamp_to_iso/2,
@@ -197,6 +201,17 @@ make_invitation(From, Password, Reason) ->
                               attrs = [{<<"xmlns">>, ?NS_MUC_USER}],
                               children = Elements3}]}.
 
+
+-spec form_field(Attrs, Value) -> xmlel() when
+    Attrs :: [{binary(), binary()}],
+    Value :: binary() | [binary()].
+form_field(Attrs, Value) when is_binary(Value) ->
+    form_field(Attrs, [Value]);
+form_field(Attrs, Values) ->
+    #xmlel{name = <<"field">>,
+           attrs = Attrs,
+           children = [#xmlel{name = <<"value">>,
+                              children = [#xmlcdata{content = Value} || Value <- Values]}]}.
 
 -spec form_field({binary(), binary(), binary()}
                | {binary(), binary(), binary(), binary()}) -> xmlel().
@@ -448,49 +463,79 @@ parse_xdata_submit(El) ->
     #xmlel{attrs = Attrs, children = Els} = El,
     case xml:get_attr_s(<<"type">>, Attrs) of
         <<"submit">> ->
-            lists:reverse(parse_xdata_fields(Els, []));
+            parse_xdata_fields(Els);
         _ ->
             invalid
     end.
 
+-spec parse_xdata_fields([xmlcdata() | xmlel()]) -> [{binary(), [binary()]}].
+parse_xdata_fields(Elems) ->
+    lists:filtermap(
+        fun (#xmlel{name = <<"field">>, attrs = Attrs, children = SubElems}) ->
+                case xml:get_attr_s(<<"var">>, Attrs) of
+                    <<>> -> false;
+                    Var ->
+                        {true, {Var, parse_xdata_values(SubElems)}}
+                end;
+            (_) -> false
+        end,
+        Elems).
 
--spec parse_xdata_fields([xmlcdata() | xmlel()], [{binary(), [binary()]}]) ->
-    [{binary(), [binary()]}].
-parse_xdata_fields([], Res) ->
-    Res;
-parse_xdata_fields([#xmlel{name = Name, attrs = Attrs,
-                           children = SubEls} | Els], Res) ->
-    case Name of
-        <<"field">> ->
-            case xml:get_attr_s(<<"var">>, Attrs) of
-                <<>> ->
-                    parse_xdata_fields(Els, Res);
-                Var ->
-                    Field =
-                        {Var, lists:reverse(parse_xdata_values(SubEls, []))},
-                    parse_xdata_fields(Els, [Field | Res])
-            end;
-        _ ->
-            parse_xdata_fields(Els, Res)
-    end;
-parse_xdata_fields([_ | Els], Res) ->
-    parse_xdata_fields(Els, Res).
+-spec parse_xdata_values([xmlcdata() | xmlel()]) -> [binary()].
+parse_xdata_values(Elems) ->
+    [ xml:get_cdata(SubElems) || #xmlel{name = <<"value">>, children = SubElems} <- Elems ].
 
+-spec filter_xdata_elements(Elements :: [jlib:xmlel()]) -> [jlib:xmlel()].
+filter_xdata_elements(Elements) ->
+    filter_xdata_elements(Elements, undefined).
 
--spec parse_xdata_values([xmlcdata() | xmlel()], [binary()]) -> [binary()].
-parse_xdata_values([], Res) ->
-    Res;
-parse_xdata_values([#xmlel{name = Name,
-                           children = SubEls} | Els], Res) ->
-    case Name of
-        <<"value">> ->
-            Val = xml:get_cdata(SubEls),
-            parse_xdata_values(Els, [Val | Res]);
-        _ ->
-            parse_xdata_values(Els, Res)
-    end;
-parse_xdata_values([_ | Els], Res) ->
-    parse_xdata_values(Els, Res).
+-spec filter_xdata_elements(Elements :: [jlib:xmlel()],
+                         FormType :: binary() | undefined) -> [jlib:xmlel()].
+filter_xdata_elements(Elements, FormType) ->
+    lists:filter(
+        fun (#xmlel{name = <<"x">>} = XElem) ->
+                namespace_matches(XElem, ?NS_XDATA)
+                andalso
+                form_type_matches(XElem, FormType);
+            (_) ->
+                false
+        end,
+        Elements).
+
+namespace_matches(XElem, NS) ->
+    attribute_matches(XElem, <<"xmlns">>, NS).
+
+attribute_matches(#xmlel{attrs = Attrs}, AttrKey, AttrValue) ->
+    proplists:get_value(AttrKey, Attrs) =:= AttrValue.
+
+form_type_matches(_XElem, undefined) ->
+    true;
+form_type_matches(XElem, FormType) ->
+    has_child_which_matches(
+        fun (#xmlel{name = <<"field">>} = FieldElem) ->
+                attribute_matches(FieldElem, <<"var">>, <<"FORM_TYPE">>)
+                andalso
+                has_child_which_matches(
+                    fun (#xmlel{name = <<"value">>,
+                                children = [#xmlcdata{content = FT}]}) when FT =:= FormType ->
+                            true;
+                        (_) ->
+                            false
+                    end,
+                    FieldElem);
+            (_) ->
+                false
+        end,
+        XElem).
+
+-spec(has_child_which_matches/2 ::
+(
+    Pred :: fun((ChildElem :: jlib:xmlel()) -> boolean()),
+    Elem :: jlib:xmlel())
+    -> boolean()
+).
+has_child_which_matches(Pred, #xmlel{children = Children}) ->
+    lists:any(Pred, Children).
 
 
 -spec rsm_decode(xmlel() | iq()) -> 'none' | #rsm_in{}.

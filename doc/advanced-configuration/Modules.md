@@ -63,3 +63,14 @@ Provides support for VCards, as specified in [XEP-0054 (vcard-temp)](http://xmpp
 ### [mod_websockets](../modules/mod_websockets.md)
 Allows users to connect to MongooseIM using Websockets.
 
+### [mod_push](../modules/mod_push.md)
+Server implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
+
+### [mod_push_app_server](../modules/mod_push_app_server.md)
+App Server implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
+
+### [mod_push_push_service](../modules/mod_push_push_service.md)
+XMPP Push Service implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
+
+### [mod_platypus_api](../modules/mod_platypus_api.md)
+Platypus (Push Server) API used by the App Server (`mod_push_app_server`).
