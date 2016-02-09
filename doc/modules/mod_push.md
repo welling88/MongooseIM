@@ -47,6 +47,13 @@ Example Configuration
 ```
 
 
+Distribution of roles
+---------------------
+
+The *App Server* and *XMPP Push Service* are described as external services and that is indeed how this XEP is designed.
+However, it is also possible to run the *App Server* and *XMPP Push Service* on the same instance of MongooseIM as the *XMPP Server*.
+
+
 <!-- Links -->
 
 [XEP-0050]: http://xmpp.org/extensions/xep-0050.html

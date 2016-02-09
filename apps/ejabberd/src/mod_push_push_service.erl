@@ -73,7 +73,6 @@ stop(Host) ->
 %%% API
 %%%----------------------------------------------------------------------
 
-%% TODO: RegisterHost and ServerHost may be all mixed upp, check it up
 -spec(create_node/1 ::
 (
   RegisterHost :: binary())
@@ -82,7 +81,7 @@ stop(Host) ->
 create_node(RegisterHost) ->
     PubsubHost = mod_pubsub:host(RegisterHost),
     Node = list_to_binary(randoms:get_string()), %% TODO: Change to something with higher entropy
-    Owner = jid:make({<<>>, RegisterHost, <<>>}),
+    Owner = jid:make({<<>>, RegisterHost, <<>>}), %% TODO: Check if this is correct
     NodeType = <<"push">>,
     Access = all,
     Config = [],
