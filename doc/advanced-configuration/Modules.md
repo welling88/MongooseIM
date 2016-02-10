@@ -36,11 +36,23 @@ Implements a logging subsystem for [mod_muc].
 ### [mod_offline](../modules/mod_offline.md)
 Provides offline storage compliant with [XEP-0160 (Best Practices for Handling Offline Messages)](http://xmpp.org/extensions/xep-0160.html).
 
+### [mod_platypus_api](../modules/mod_platypus_api.md)
+Platypus (Push Server) API used by the Push App Server (`mod_push_app_server`).
+
 ### [mod_privacy](../modules/mod_privacy.md)
 This module implements [XEP-0016 (Privacy Lists)](http://xmpp.org/extensions/xep-0016.html).
 
 ### [mod_private](../modules/mod_private.md)
 Implements [XEP-0049 (Private XML Storage)](http://xmpp.org/extensions/xep-0049.html)
+
+### [mod_push](../modules/mod_push.md)
+Server implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
+
+### [mod_push_app_server](../modules/mod_push_app_server.md)
+App Server implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
+
+### [mod_push_push_service](../modules/mod_push_push_service.md)
+XMPP Push Service implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
 
 ### [mod_register](../modules/mod_register.md)
 Implements [XEP-0077 (In-Band Registration)](http://xmpp.org/extensions/xep-0077.html).
@@ -62,15 +74,3 @@ Provides support for VCards, as specified in [XEP-0054 (vcard-temp)](http://xmpp
 
 ### [mod_websockets](../modules/mod_websockets.md)
 Allows users to connect to MongooseIM using Websockets.
-
-### [mod_push](../modules/mod_push.md)
-Server implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
-
-### [mod_push_app_server](../modules/mod_push_app_server.md)
-App Server implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
-
-### [mod_push_push_service](../modules/mod_push_push_service.md)
-XMPP Push Service implementation of [XEP-0357 (Push Notifications)](http://xmpp.org/extensions/xep-0357.html) (version 0.2)
-
-### [mod_platypus_api](../modules/mod_platypus_api.md)
-Platypus (Push Server) API used by the App Server (`mod_push_app_server`).
