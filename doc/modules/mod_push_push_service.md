@@ -33,6 +33,7 @@ Add `<<"push">>` to the list `mod_pubsub` plugins.
 ```erlang
 {mod_pubsub, [{plugins, [<<"dag">>, <<"push">>]},
               {nodetree, <<"dag">>}]},
+{mod_push_push_service, []}
 ```
 
 
@@ -40,6 +41,11 @@ Other files
 -----------
 
 * `node_push` is the node plugin to `mod_pubsub`
+
+TODO
+----
+
+- [ ] Store user's bare JID when creating node and validate against this when deciding to accept a publish request.
 
 
 <!-- Links -->

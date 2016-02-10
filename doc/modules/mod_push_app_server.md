@@ -58,6 +58,9 @@ Options
 
 * `backend` (atom, default: `mnesia`) - Storage backend. Currently only `mnesia` is supported
 
+<!-- TODO: * `push_server_api` (atom) - Push server used to send the actual push notifications.
+  Currently supported: [`mod_platypus_api`] -->
+
 
 Example Configuration
 ---------------------
@@ -66,11 +69,11 @@ Example Configuration
 {mod_push_app_server, []}
 ```
 
+TODO
+----
 
-
-Structure
----------
-
+- [ ] Add other database backends than Mnesia
+- [ ] Add option `push_server_api`
 
 
 <!-- Links -->
@@ -81,3 +84,4 @@ Structure
 
 [`mod_push`]: mod_push.md
 [`mod_push_push_service`]: mod_push_push_service.md
+[`mod_platypus_api`]: mod_platypus_api.md

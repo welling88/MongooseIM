@@ -80,11 +80,11 @@ add_device(Username, Type, Token) ->
         {ok, "204", _, _} -> % If the device was already added cowboy returns 204
             ?DEBUG("Device for ~p added to Platypus, type: ~p", [Username, Type]);
         {ok, Status, _, RespBody} ->
-            ?DEBUG("Device for ~p could not be added, Platypus returned status ~p, body: ~p",
-                      [Username, Status, RespBody]);
+            ?ERROR_MSG("Device for ~p could not be added, Platypus returned status ~p, body: ~p",
+                       [Username, Status, RespBody]);
         {error, Reason} ->
-            ?DEBUG("Error when trying to add device for ~p, reason: ~p",
-                      [Username, Reason]),
+            ?ERROR_MSG("Error when trying to add device for ~p, reason: ~p",
+                       [Username, Reason]),
             {error, Reason}
     end.
 
@@ -121,11 +121,11 @@ send_push(Username, MsgSender, MsgBody) ->
         {ok, "200", _, Body} ->
             ?DEBUG("Notification for ~p pushed to Platypus, body: ~p", [Username, Body]);
         {ok, Status, _, Body} ->
-            ?DEBUG("Notification for ~p could not be pushed, Platypus returned status ~p, "
-                      "body: ~p", [Username, Status, Body]);
+            ?ERROR_MSG("Notification for ~p could not be pushed, Platypus returned status ~p, "
+                       "body: ~p", [Username, Status, Body]);
         {error, Reason} ->
-            ?DEBUG("Error when trying to push notification for ~p, reason: ~p",
-                      [Username, Reason]),
+            ?ERROR_MSG("Error when trying to push notification for ~p, reason: ~p",
+                       [Username, Reason]),
             {error, Reason}
     end.
 

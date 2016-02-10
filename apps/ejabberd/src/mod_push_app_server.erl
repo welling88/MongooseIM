@@ -88,6 +88,7 @@
 %%%----------------------------------------------------------------------
 
 -define(BACKEND, mod_push_app_server_backend).
+%% TODO: Make push server backend configurable
 -define(PUSH_SERVER_BACKEND, mod_platypus_api).
 
 %%%----------------------------------------------------------------------
@@ -105,7 +106,6 @@ start(Host, Opts) ->
     ?BACKEND:init(Host, Opts),
     ejabberd_hooks:add(adhoc_local_commands, Host, ?MODULE, process_adhoc_command, 75).
     %% TODO: Add disco hooks for adhoc commands
-    %% Get opts for push server api module
 
 %%-----------------------------------------------------------------------
 

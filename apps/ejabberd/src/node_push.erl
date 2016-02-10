@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
 %%% File    : node_push.erl
 %%% Author  : Christian Ulrich <christian@rechenwerk.net>
-%%% Purpose : mod_push's pubsub plugin
+%%% Purpose : PubSub node plugin for mod_push_push_service
 %%%
 %%% Created : 24 Mar 2015 by Christian Ulrich <christian@rechenwerk.net>
 %%%
