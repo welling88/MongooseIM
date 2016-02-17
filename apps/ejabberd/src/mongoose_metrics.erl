@@ -438,6 +438,7 @@ subscribe_to_all(Reporter, Interval) ->
     start_global_metrics_subscriptions(Reporter, Interval),
     start_backend_metrics_subscriptions(Reporter, Interval),
     start_data_metrics_subscriptions(Reporter, Interval),
+    start_vm_metrics_subscriptions(Reporter, Interval),
     lists:foreach(
       fun(Host) ->
               start_host_metrics_subscriptions(Reporter, Host, Interval)
