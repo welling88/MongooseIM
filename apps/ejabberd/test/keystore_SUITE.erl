@@ -26,16 +26,24 @@ init_per_testcase(_, Config) ->
     mock_mongoose_metrics(),
     async_helper:start(Config, ejabberd_hooks, start_link, []).
 
-end_per_testcase(CaseName, C) ->
+end_per_testcase(module_startup_non_unique_key_ids, C) ->
+   clean_after_testcase(C);
+end_per_testcase(module_startup_for_multiple_domains, C) ->
+    mod_keystore:stop(<<"first.com">>),
+    mod_keystore:stop(<<"second.com">>),
+    clean_after_testcase(C);
+end_per_testcase(multiple_domains_one_stopped, C) ->
+    mod_keystore:stop(<<"second.com">>),
+    clean_after_testcase(C);
+end_per_testcase(_CaseName, C) ->
+    mod_keystore:stop(<<"localhost">>),
+    clean_after_testcase(C).
+
+clean_after_testcase(C) ->
     meck:unload(mongoose_metrics),
-    case CaseName =/= module_startup_non_unique_key_ids of
-        true -> ok = mod_keystore:stop(<<"localhost">>);
-        _    -> ok
-    end,
     async_helper:stop_all(C),
     mnesia:delete_table(key),
     C.
-
 %%
 %% Tests
 %%
