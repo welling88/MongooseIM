@@ -25,6 +25,8 @@
 -define(BACKEND, mod_keystore_backend).
 -define(DEFAULT_RAM_KEY_SIZE, 2048).
 -define(iol2b(L), iolist_to_binary(L)).
+-define(TABLE_PREFIX, keystore_).
+-define(TABLE_NAME(Domain), create_table_name(Domain)).
 
 %% A key name is used in the config file to name a key (a class of keys).
 %% The name doesn't differentiate between virtual hosts
@@ -62,7 +64,7 @@
 -spec start(ejabberd:server(), list()) -> ok.
 start(Domain, Opts) ->
     validate_opts(Opts),
-    create_keystore_ets(),
+    create_keystore_ets(Domain),
     gen_mod:start_backend_module(?MODULE, Opts),
     ?BACKEND:init(Domain, Opts),
     init_keys(Domain, Opts),
@@ -74,7 +76,7 @@ start(Domain, Opts) ->
 stop(Domain) ->
     [ ejabberd_hooks:delete(Hook, Domain, ?MODULE, Handler, Priority)
       || {Hook, Handler, Priority} <- hook_handlers() ],
-    delete_keystore_ets(),
+    delete_keystore_ets(Domain),
     ok.
 
 %%
@@ -110,17 +112,18 @@ hook_handlers() ->
      {get_key, get_key, 50}
     ].
 
-create_keystore_ets() ->
-    case does_table_exist(keystore) of
+create_keystore_ets(Domain) ->
+    TableName = ?TABLE_NAME(Domain),
+    case does_table_exist(TableName) of
         true -> ok;
         false ->
-            keystore = ets:new(keystore, [named_table, public,
+            TableName = ets:new(TableName, [named_table, public,
                                           {read_concurrency, true}]),
             ok
     end.
 
-delete_keystore_ets() ->
-    ets:delete(keystore).
+delete_keystore_ets(Domain) ->
+    ets:delete(?TABLE_NAME(Domain)).
 
 does_table_exist(NameOrTID) ->
     ets:info(NameOrTID, name) /= undefined.
@@ -141,11 +144,16 @@ init_key({KeyName, ram}, Domain, Opts) ->
     ok.
 
 %% It's easier to trace these than ets:{insert,lookup} - much less noise.
-ets_get_key(KeyID) ->
-    ets:lookup(keystore, KeyID).
+ets_get_key({Key, Domain}) ->
+    case ets:lookup(?TABLE_NAME(Domain), Key) of
+        [] ->
+            [];
+        LookupList ->
+            [{{KeyEl, Domain}, RawKeyEl} || {KeyEl, RawKeyEl} <- LookupList]
+    end.
 
-ets_store_key(KeyID, RawKey) ->
-    ets:insert(keystore, {KeyID, RawKey}).
+ets_store_key({Key, Domain}, RawKey) ->
+    ets:insert(?TABLE_NAME(Domain), {Key, RawKey}).
 
 get_key_size(Opts) ->
     case lists:keyfind(ram_key_size, 1, Opts) of
@@ -163,3 +171,8 @@ validate_key_ids(KeySpecs) ->
         [] -> ok;
         [_|_] -> error(non_unique_key_ids, KeySpecs)
     end.
+
+create_table_name(Domain) when is_binary(Domain) ->
+    PrefixList = atom_to_list(?TABLE_PREFIX),
+    TableNameString = PrefixList ++ binary_to_list(Domain),
+    list_to_atom(TableNameString).
