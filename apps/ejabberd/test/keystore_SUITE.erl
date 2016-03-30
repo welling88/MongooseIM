@@ -11,7 +11,8 @@ all() ->
      module_startup_create_ram_key,
      module_startup_create_ram_key_of_given_size,
      module_startup_for_multiple_domains,
-     module_startup_non_unique_key_ids
+     module_startup_non_unique_key_ids,
+     multiple_domains_one_stopped
     ].
 
 init_per_suite(C) ->
@@ -100,6 +101,22 @@ module_startup_non_unique_key_ids(_) ->
     catch
         error:non_unique_key_ids -> ok
     end.
+
+multiple_domains_one_stopped(_Config) ->
+    % given
+    [] = get_key(<<"first.com">>, key_from_file),
+    [] = get_key(<<"second.com">>, key_from_file),
+    FirstKey = <<"random-first.com-key-content">>,
+    SecondKey = <<"random-second.com-key-content">>,
+    {ok, FirstKeyFile} = key_at("/tmp/first.com", FirstKey),
+    {ok, SecondKeyFile} = key_at("/tmp/second.com", SecondKey),
+    % when
+    ok = mod_keystore:start(<<"first.com">>, key_from_file(FirstKeyFile)),
+    ok = mod_keystore:start(<<"second.com">>, key_from_file(SecondKeyFile)),
+    ok = mod_keystore:stop(<<"first.com">>),
+    % then
+    ?ae([{{key_from_file, <<"second.com">>}, SecondKey}],
+        get_key(<<"second.com">>, key_from_file)).
 
 %%
 %% Helpers
