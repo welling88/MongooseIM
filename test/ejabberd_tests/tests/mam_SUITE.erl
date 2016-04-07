@@ -64,6 +64,7 @@
          muc_querying_for_all_messages/1,
          muc_querying_for_all_messages_with_jid/1,
          muc_light_simple/1,
+         muc_light_shouldnt_modify_pm_archive/1,
          iq_spoofing/1]).
 
 -include_lib("escalus/include/escalus.hrl").
@@ -259,7 +260,8 @@ muc_cases() ->
      ].
 
 muc_light_cases() ->
-    [muc_light_simple].
+    [muc_light_simple,
+     muc_light_shouldnt_modify_pm_archive].
 
 muc_rsm_cases() ->
     rsm_cases().
@@ -340,7 +342,7 @@ init_modules(C, muc_rsm, Config) ->
 
 init_modules(C, muc_light, Config) ->
     dynamic_modules:start(host(), mod_muc_light, [{host, binary_to_list(muc_light_host())}]),
-    Config1 = init_modules(C, muc, Config),
+    Config1 = init_modules(C, muc_with_pm, Config),
     stop_module(host(), mod_mam_muc),
     init_module(host(), mod_mam_muc, [{host, binary_to_list(muc_light_host())}]),
     Config1;
@@ -569,7 +571,8 @@ init_state(_, muc, Config) ->
 init_state(_, muc_with_pm, Config) ->
     Config;
 init_state(C, muc_light, Config) ->
-    init_state(C, muc, Config);
+    Config1 = clean_archives(Config),
+    init_state(C, muc, Config1);
 init_state(_, rsm, Config) ->
     send_rsm_messages(clean_archives(Config));
 init_state(_, with_rsm, Config) ->
@@ -827,39 +830,121 @@ muc_querying_for_all_messages_with_jid(Config) ->
 
 muc_light_simple(Config) ->
     escalus:story(Config, [{alice, 1}, {bob, 1}], fun(Alice, Bob) ->
-            Room2 = muc_light_SUITE:room2(),
-            escalus:send(Alice, muc_light_SUITE:stanza_create_room(Room2, [], [])),
-            muc_light_SUITE:verify_aff_bcast([{Alice, owner}], [{Alice, owner}]),
-            escalus:assert(is_iq_result, escalus:wait_for_stanza(Alice)),
+            Room = <<"testroom">>,
+            given_muc_light_room(Room, Alice, []),
 
-            Room2BinJID = muc_light_SUITE:room_bin_jid(Room2),
-            MsgBody1 = <<"Message 1">>,
-            Id1 = <<"MyID1">>,
-            Stanza1 = escalus_stanza:set_id(
-                        escalus_stanza:groupchat_to(Room2BinJID, MsgBody1), Id1),
-            muc_helper:foreach_occupant(
-              [Alice], Stanza1, muc_light_SUITE:gc_message_verify_fun(Room2, MsgBody1, Id1)),
-            MsgBody2 = <<"Message 2">>,
-            Id2 = <<"MyID2">>,
-            Stanza2 = escalus_stanza:set_id(
-                        escalus_stanza:groupchat_to(Room2BinJID, MsgBody2), Id2),
-            muc_helper:foreach_occupant(
-              [Alice], Stanza2, muc_light_SUITE:gc_message_verify_fun(Room2, MsgBody2, Id2)),
-            escalus:send(Alice, muc_light_SUITE:stanza_aff_set(Room2, [{Bob, member}])),
-            muc_light_SUITE:verify_aff_bcast([{Alice, owner}, {Bob, member}], [{Bob, member}]),
+            M1 = when_muc_light_message_is_sent(Alice, Room,
+                                                <<"Msg 1">>, <<"Id1">>),
+            then_muc_light_message_is_received_by([Alice], M1),
 
-            escalus:send(Bob, escalus_stanza:to(stanza_archive_request(<<"mlight">>), Room2BinJID)),
-            [_IQRes, CreateEvent, Msg1, Msg2, BobAdd] = assert_respond_size(
-                                                          4, wait_archive_respond_iq_first(Bob)),
+            M2 = when_muc_light_message_is_sent(Alice, Room,
+                                                <<"Message 2">>, <<"MyID2">>),
+            then_muc_light_message_is_received_by([Alice], M2),
 
-            #forwarded_message{message_body = MsgBody1} = parse_forwarded_message(Msg1),
-            #forwarded_message{message_body = MsgBody2} = parse_forwarded_message(Msg2),
+            Aff = when_muc_light_affiliations_are_set(Alice, Room, [{Bob, member}]),
+            then_muc_light_affiliations_are_received_by([Alice, Bob], Aff),
 
-            verify_archived_muc_light_aff_msg(parse_forwarded_message(CreateEvent),
-                                              [{Alice, owner}], true),
-            verify_archived_muc_light_aff_msg(parse_forwarded_message(BobAdd),
-                                              [{Bob, member}], false)
+            when_archive_query_is_sent(Bob, muc_light_SUITE:room_bin_jid(Room)),
+            ExpectedResponse = [{create, [{Alice, owner}]},
+                                {muc_message, Room, Alice, <<"Msg 1">>},
+                                {muc_message, Room, Alice, <<"Message 2">>},
+                                {affiliations, [{Bob, member}]}],
+            then_archive_response_is(Bob, ExpectedResponse)
         end).
+
+muc_light_shouldnt_modify_pm_archive(Config) ->
+    escalus:story(Config, [{alice, 1}, {bob, 1}], fun(Alice, Bob) ->
+            Room = <<"testroom2">>,
+            given_muc_light_room(Room, Alice, [{Bob, member}]),
+
+            when_pm_message_is_sent(Alice, Bob, <<"private hi!">>),
+            then_pm_message_is_received(Bob, <<"private hi!">>),
+
+            when_archive_query_is_sent(Alice, <<>>),
+            then_archive_response_is(Alice, [{message, Alice, <<"private hi!">>}]),
+            when_archive_query_is_sent(Bob, <<>>),
+            then_archive_response_is(Bob, [{message, Alice, <<"private hi!">>}]),
+
+            M1 = when_muc_light_message_is_sent(Alice, Room,
+                                                <<"Msg 1">>, <<"Id 1">>),
+            then_muc_light_message_is_received_by([Alice, Bob], M1),
+
+            when_archive_query_is_sent(Alice, muc_light_SUITE:room_bin_jid(Room)),
+            then_archive_response_is(Alice, [{muc_message, Room, Alice, <<"Msg 1">>}]),
+
+            when_archive_query_is_sent(Alice, <<>>),
+            then_archive_response_is(Alice, [{message, Alice, <<"private hi!">>}]),
+            when_archive_query_is_sent(Bob, <<>>),
+            then_archive_response_is(Bob, [{message, Alice, <<"private hi!">>}]),
+            when_archive_query_is_sent(Bob, <<>>),
+
+            ok
+        end).
+
+when_pm_message_is_sent(Sender, Receiver, Body) ->
+    escalus:send(Sender, escalus_stanza:chat_to(Receiver, Body)).
+
+then_pm_message_is_received(Receiver, Body) ->
+    escalus:assert(is_chat_message, [Body], escalus:wait_for_stanza(Receiver)).
+
+given_muc_light_room(Name, Creator, InitOccupants) ->
+    CreateStanza = muc_light_SUITE:stanza_create_room(Name, [], InitOccupants),
+    escalus:send(Creator, CreateStanza),
+    Affiliations = [{Creator, owner} | InitOccupants],
+    muc_light_SUITE:verify_aff_bcast(Affiliations, Affiliations),
+    escalus:assert(is_iq_result, escalus:wait_for_stanza(Creator)).
+
+when_muc_light_message_is_sent(Sender, Room, Body, Id) ->
+    RoomJid = muc_light_SUITE:room_bin_jid(Room),
+    Stanza = escalus_stanza:set_id(
+               escalus_stanza:groupchat_to(RoomJid, Body), Id),
+    escalus:send(Sender, Stanza),
+    {Room, Body, Id}.
+
+then_muc_light_message_is_received_by(Users, {Room, Body, Id}) ->
+    F = muc_light_SUITE:gc_message_verify_fun(Room, Body, Id),
+    [ F(escalus:wait_for_stanza(User)) || User <- Users ].
+
+when_muc_light_affiliations_are_set(Sender, Room, Affiliations) ->
+    Stanza = muc_light_SUITE:stanza_aff_set(Room, Affiliations),
+    escalus:send(Sender, Stanza),
+    {Room, Affiliations}.
+
+then_muc_light_affiliations_are_received_by(Users, {_Room, Affiliations}) ->
+    F = muc_light_SUITE:aff_msg_verify_fun(Affiliations),
+    [ F(escalus:wait_for_stanza(User)) || User <- Users ].
+
+when_archive_query_is_sent(Sender, RecipientJid) ->
+    Request = escalus_stanza:to(stanza_archive_request(<<"q">>), RecipientJid),
+    escalus:send(Sender, Request).
+
+then_archive_response_is(Receiver, Expected) ->
+    Response = wait_archive_respond_iq_first(Receiver),
+    [IQRes | Stanzas] = assert_respond_size(length(Expected), Response),
+    escalus:assert(is_iq_result, IQRes),
+    ParsedStanzas = [ parse_forwarded_message(Stanza) || Stanza <- Stanzas ],
+    [ assert_archive_element(Element)
+      || Element <- lists:zip(Expected, ParsedStanzas) ].
+
+assert_archive_element({{create, Affiliations}, Stanza}) ->
+    verify_archived_muc_light_aff_msg(Stanza, Affiliations, _IsCreate = true);
+assert_archive_element({{affiliations, Affiliations}, Stanza}) ->
+    verify_archived_muc_light_aff_msg(Stanza, Affiliations, _IsCreate = false);
+assert_archive_element({{muc_message, Room, Sender, Body}, Stanza}) ->
+    FromJid = escalus_utils:jid_to_lower(muc_light_room_jid(Room, Sender)),
+    RoomJid = muc_light_SUITE:room_bin_jid(Room),
+    #forwarded_message{message_body = Body,
+                       from = RoomJid,
+                       delay_from = FromJid} = Stanza;
+assert_archive_element({{message, Sender, Body}, Stanza}) ->
+    FromJid = escalus_utils:jid_to_lower(Sender),
+    #forwarded_message{message_body = Body, delay_from = FromJid} = Stanza.
+
+
+muc_light_room_jid(Room, User) ->
+    RoomJid = muc_light_SUITE:room_bin_jid(Room),
+    UserJid = escalus_utils:get_short_jid(User),
+    <<RoomJid/binary, $/, UserJid/binary>>.
 
 archived(Config) ->
     F = fun(Alice, Bob) ->
