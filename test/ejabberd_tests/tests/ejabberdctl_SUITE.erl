@@ -35,28 +35,33 @@
 %%--------------------------------------------------------------------
 
 all() ->
-    [{group, accounts},
-     {group, sessions},
-     {group, vcard},
-     {group, roster},
-     {group, roster_advanced},
-     {group, last},
-     {group, private},
-     {group, stanza},
-     {group, stats},
-     {group, basic}].
+    [
+%%        {group, accounts},
+%%     {group, sessions},
+%%     {group, vcard},
+%%     {group, roster},
+%%     {group, roster_advanced},
+%%     {group, last},
+%%     {group, private},
+%%     {group, stanza},
+%%     {group, stats},
+%%     {group, basic},
+     {group, restart}].
 
 groups() ->
-     [{accounts, [sequence], accounts()},
-      {sessions, [sequence], sessions()},
-      {vcard, [sequence], vcard()},
-      {roster, [sequence], roster()},
-      {last, [sequence], last()},
-      {private, [sequence], private()},
-      {stanza, [sequence], stanza()},
-      {roster_advanced, [sequence], roster_advanced()},
-      {basic, [sequence], basic()},
-      {stats, [sequence], stats()}].
+     [
+%%         {accounts, [sequence], accounts()},
+%%      {sessions, [sequence], sessions()},
+%%      {vcard, [sequence], vcard()},
+%%      {roster, [sequence], roster()},
+%%      {last, [sequence], last()},
+%%      {private, [sequence], private()},
+%%      {stanza, [sequence], stanza()},
+%%      {roster_advanced, [sequence], roster_advanced()},
+%%      {basic, [sequence], basic()},
+%%      {stats, [sequence], stats()}
+      {restart, [{repeat, 10}], restart()}
+     ].
 
 basic() ->
     [simple_register, simple_unregister, register_twice,
@@ -67,8 +72,7 @@ basic() ->
         dump_table,
         get_loglevel,
         remove_old_messages_test,
-        remove_expired_messages_test
-    ].
+        remove_expired_messages_test].
 
 accounts() -> [change_password, check_password_hash, check_password,
                check_account, ban_account, num_active_users, delete_old_users,
@@ -98,6 +102,9 @@ private() -> [private_rw].
 stanza() -> [send_message, send_message_wrong_jid, send_stanza, send_stanzac2s_wrong].
 
 stats() -> [stats_global, stats_host].
+
+restart() -> [synchronous_stop_wait, synchronous_stop_nowait,
+              synchronous_start_wait, synchronous_start_nowait].
 
 suite() ->
     escalus:suite().
@@ -180,8 +187,22 @@ init_per_testcase(CaseName, Config)
         true -> {skip, not_fully_supported_with_ldap};
         false -> escalus:init_per_testcase(CaseName, Config)
     end;
+init_per_testcase(CaseName, Config) when CaseName == synchronous_start_nowait
+                                    orelse CaseName == synchronous_start_wait ->
+    ejabberdctl("stop", [], Config),
+    ejabberdctl("stopped", [], Config),
+    timer:sleep(5000),
+    escalus:init_per_testcase(CaseName, Config);
+
 init_per_testcase(CaseName, Config) ->
     escalus:init_per_testcase(CaseName, Config).
+
+end_per_testcase(CaseName, Config) when CaseName == synchronous_stop_nowait
+                                   orelse CaseName == synchronous_stop_wait ->
+    ejabberdctl("start", [], Config),
+    ejabberdctl("started", [], Config),
+    timer:sleep(5000),
+    escalus:end_per_testcase(CaseName, Config);
 
 end_per_testcase(delete_old_users, Config) ->
     Users = escalus_users:get_users([alice, bob, kate, mike]),
@@ -959,6 +980,34 @@ remove_expired_messages_test(Config) ->
         %% then
         2 = length(SecondList)
     end).
+
+synchronous_stop_nowait(Config) ->
+    {_, 0} = ejabberdctl("stop", [], Config),
+    {_, 0} = ejabberdctl("stopped", [], Config),
+    Res = net_adm:ping(mim()),
+    pang = Res.
+
+synchronous_stop_wait(Config) ->
+    {_, 0} = ejabberdctl("stop", [], Config),
+    {_, 0} = ejabberdctl("stopped", [], Config),
+    timer:sleep(5000),
+    Res = net_adm:ping(mim()),
+    pang = Res.
+
+synchronous_start_nowait(Config) ->
+    {_, 0} = ejabberdctl("start", [], Config),
+    {_, 0} = ejabberdctl("started", [], Config),
+    Res = net_adm:ping(mim()),
+    pong = Res.
+
+synchronous_start_wait(Config) ->
+    {_, 0} = ejabberdctl("start", [], Config),
+    {_, 0} = ejabberdctl("started", [], Config),
+    timer:sleep(5000),
+    Res = net_adm:ping(mim()),
+    pong = Res.
+
+
 
 %%-----------------------------------------------------------------
 %% Helpers
