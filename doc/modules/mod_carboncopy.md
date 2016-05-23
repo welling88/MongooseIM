@@ -6,14 +6,14 @@ Server informs in disco query if carbons are active on server.
 ##### Enabling and disabling Carbons from the client
 Each client for a user can enable/disable carbons for itself by sending an iq stanza with a child element respectively `<enable xmlns='urn:xmpp:carbons:2'/>` or `<disable xmlns='urn:xmpp:carbons:2'/>`
 
-##### Receiving messages to bare JID
-Each message to bare JID is forked and sent to all carbon enabled resources of recipient apart from sending it to the highest priority resource. Sending multiple copies to same resource is avoided.
+##### Receiving messages from bare JID
+Each message from bare JID is forked and sent to all carbon enabled resources of recipient apart from sending it to the highest priority resource. Sending multiple copies to same resource is avoided.
 
-##### Receiving messages to full JID
-Each directed message to a full JID is also forwarded to all carbon enabled resources of recipient. The message is wrapped in `<forwarded xmlns='urn:xmpp:forward:0'></forwarded>` tag and is directed towards each carbon enabled resource.
+##### Receiving messages from full JID
+Each directed message fom a full JID is also forwarded to all carbon enabled resources of recipient. The message is wrapped in `<forwarded xmlns='urn:xmpp:forward:0'></forwarded>` tag and is directed towards each carbon enabled resource.
 
 ##### Sending Messages
-Similar to receiving messages to full JID, each sent message is forwarded to all carbon enabled resources of recipient. The message is wrapped in `<forwarded xmlns='urn:xmpp:forward:0'></forwarded>` tag and is directed towards each carbon enabled resource.
+Similar to receiving messages from full JID, each sent message is forwarded to all carbon enabled resources of recipient. The message is wrapped in `<forwarded xmlns='urn:xmpp:forward:0'></forwarded>` tag and is directed towards each carbon enabled resource.
 
 ##### Private Messages
 Private messages with tag `<private/>` are not forwarded to any carbon enabled resource of sender and recipient if the `to` attribute contains a full JID. However, if the message is sent to bare JID then it is forked to all highest priority resources. This is not done through `mod_carboncopy` but is an expected outcome.
