@@ -10,6 +10,12 @@ User A's `ejabberd_receiver` receives the stanza and passes it to `ejabberd_c2s`
 ## 2. Call to `user_send_packet`
 
 Upon some minimal validation of the stanza a hook `user_send_packet` is called.
+If you had enabled carbons for that client ([XEP-0280: Message Carbons](http://xmpp.org/extensions/xep-0280.html))
+you should see that the module is hooked up on `user_send_packet`. The Carboncopy checks if the stanza is the message
+ with type of `chat` and, in case of true, the copy of stanza is routed to all other sender's resources. Read more in the
+ [Carboncopy section](../modules/mod_carboncopy.md)
+
+
 
 ## 3. Privacy lists and `ejabberd_router:route/3`
 
@@ -82,4 +88,6 @@ In case no resources are available for delivery
 `ejabberd_c2s` verifies the stanza against any relevant privacy lists
 and sends it one the socket.
 `user_receive_packet` hook is run to notify the rest of the system
-about stanza delivery to User B.
+about stanza delivery to User B. Again, if you had enabled carbons ([XEP-0280: Message Carbons](http://xmpp.org/extensions/xep-0280.html))
+ then the client routes to the rest of the carbon enabled resources copy of the stanza only if it's the message of type `chat`
+  and it hadn't been already stamped by carboncopy. Read more in the [Carboncopy section](../modules/mod_carboncopy.md)
