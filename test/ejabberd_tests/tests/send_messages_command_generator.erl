@@ -16,7 +16,7 @@
          wait_for_msgs_carol/2,
          wait_for_msgs_geralt/2]).
 
--export([client/0]).
+-export([client/1]).
 
 -record(state, {carol,
 				geralt,
@@ -90,14 +90,13 @@ next_state(S, _, _) ->
     S.
 
 connect_carol() ->
-    connect_user().
+    connect_user(1).
 
 connect_geralt() ->
-    connect_user().
+    connect_user(1).
 
-
-connect_user() ->
-    spawn(?MODULE, client, []).
+connect_user(I) ->
+    spawn(?MODULE, client, [I]).
 
 send_from_carol(Carol, Geralt) ->
     Msg = gen_msg(),
@@ -137,21 +136,27 @@ wait_for_message(Client) ->
             error
     end.
 
-client() ->
+client(I) ->
     receive
         {wait_for_message, Pid} ->
-            client_wait_for_message(Pid);
+            client_wait_for_message(I, Pid);
         stop ->
             ok
     end.
 
-client_wait_for_message(Pid) ->
+client_wait_for_message(I, Pid) ->
     receive
         {msg, _From, Msg} ->
+            case I > 10 of
+                true ->
+                    Pid ! {msg, <<"wrong_message">>};
+                _ ->
+                    ok
+            end,
             Pid ! {msg, Msg}
     after
         1000 ->
             Pid ! {error, timeout}
     end,
-    client().
+    client(I+1).
 
