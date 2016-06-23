@@ -417,7 +417,7 @@ handle_stream_event({EventTag, Body, Rid} = Event, Handler,
                 is_expected_rid(Rid, ExpectedRid),
                 is_acceptable_rid(Rid, ExpectedRid)}
     of
-        {_, {true, CachedResponse}, _, _} ->
+        {_, {true, CachedResponse}, _, _} when Handler /= none->
             case CachedResponse of
                 none ->
                     NS;
@@ -429,8 +429,14 @@ handle_stream_event({EventTag, Body, Rid} = Event, Handler,
         {_, _, true, _} ->
             process_acked_stream_event(Event, SName, NS);
         {_, _, false, true} ->
-            ?INFO_MSG("deferring (rid: ~p, expected: ~p): ~p~n",
+            ?WARNING_MSG("deferring (rid: ~p, expected: ~p): ~p~n",
                       [Rid, ExpectedRid, {EventTag, Body}]),
+            case S#state.pending of
+                [] ->
+                    ok;
+                Pending ->
+                    ?WARNING_MSG("peding stanzas while deferring: ~p", [Pending])
+            end,
             NS#state{deferred = [Event | NS#state.deferred]};
         {_, _, false, false} ->
 
@@ -609,7 +615,10 @@ process_pause_event(Seconds, State) ->
 
 
 -spec process_deferred_events(_SName, state()) -> state().
+process_deferred_events(_SName, #state{deferred = []} = S) ->
+    S;
 process_deferred_events(SName, #state{deferred = Deferred} = S) ->
+    ?WARNING_MSG("processing deffered: ~p", [lager:pr(S, ?MODULE)]),
     lists:foldl(fun(Event, State) ->
                     ?DEBUG("processing deferred event: ~p~n", [Event]),
                     handle_stream_event(Event, none, SName, State)
