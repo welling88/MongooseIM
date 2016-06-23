@@ -293,6 +293,9 @@ interleave_requests_escalus(Config) ->
     end).
 
 interleave_requests(Config) ->
+    true = bosh_interleave_reqs:test(Config).
+
+interleave_requests2(Config) ->
     escalus:story(Config, [{geralt, 1}], fun(Geralt) ->
         User = ?config(user, Config),
         Carol = start_client(Config, User, <<"bosh">>),
