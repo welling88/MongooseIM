@@ -1,5 +1,7 @@
 # MongooseIM metrics
 
+![dashboard](grafana-dashboard.png "A Grafana Dashboard for MIM!")
+
 MongooseIM by default collects many metrics showing user behaviour and general system statistics.
 They are managed by [Feuerlabs's exometer](https://github.com/Feuerlabs/exometer).
  
