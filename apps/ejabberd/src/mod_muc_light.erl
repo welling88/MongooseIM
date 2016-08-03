@@ -17,6 +17,21 @@
 %%% * rooms_per_page (10) - Maximal room count per result page in room disco
 %%% * rooms_in_rosters (false) - If enabled, rooms that user occupies will be included in
 %%%                              user's roster
+%%% * config_schema (undefined) - Custom list of configuration options for a room;
+%%%                               WARNING! Lack of `roomname` field will cause room names in
+%%%                               Disco results and Roster items be set to null string.
+%%%
+%%% Allowed `config_schema` list items (may be mixed):
+%%% * Just field name: "field" - will be expanded to "field" of type 'binary'
+%%% * Field name and type: {"field", integer}
+%%% * Field binary name, atom and the type: {"field", field, float} - useful only for debugging
+%%%                 or unusual applications
+%%% Sample valid list: `["roomname", {"subject", binary}, {"priority", priority, integer}]`
+%%%
+%%% Valid config field types:
+%%% * binary
+%%% * integer
+%%% * float
 %%%
 %%%----------------------------------------------------------------------
 
@@ -26,7 +41,7 @@
 -behaviour(gen_mod).
 
 %% API
--export([default_config/0]).
+-export([config_schema/1, default_config/0]).
 -export([get_opt/3, set_opt/3]).
 
 %% gen_mod callbacks
@@ -66,6 +81,9 @@ default_config() ->
      {roomname, <<"Untitled">>},
      {subject, <<>>}
     ].
+
+-spec config_schema(MUCServer :: ejabberd:lserver()) -> config_schema().
+config_schema(MUCServer) -> get_opt(MUCServer, config_schema, undefined).
 
 -spec get_opt(MUCServer :: ejabberd:lserver(), OptName :: atom(), Default :: any()) -> any().
 get_opt(MUCServer, OptName, Default) ->
@@ -125,6 +143,11 @@ start(Host, Opts) ->
               end,
     catch ets:new(?CONFIG_TAB, [set, public, named_table, {read_concurrency, true} | HeirOpt]),
     ets:insert(?CONFIG_TAB, {MyDomain, Opts}),
+
+    %% Prepare config schema
+    ConfigSchema = mod_muc_light_utils:make_config_schema(
+                     gen_mod:get_opt(config_schema, Opts, undefined)),
+    set_opt(MyDomain, config_schema, ConfigSchema),
 
     ok.
 
@@ -336,12 +359,12 @@ get_affiliation(Room, User) ->
 -spec create_room(From :: ejabberd:jid(), FromUS :: ejabberd:simple_bare_jid(),
                   To :: ejabberd:jid(), Create :: #create{}, OrigPacket :: jlib:xmlel()) -> ok.
 create_room(From, FromUS, To, #create{ raw_config = RawConfig } = Create0, OrigPacket) ->
-    {RoomU, _} = RoomUS = jid:to_lus(To), % might be service JID for room autogeneration
+    {RoomU, RoomS} = RoomUS = jid:to_lus(To), % might be service JID for room autogeneration
     InitialAffUsers = mod_muc_light_utils:filter_out_prevented(
                         FromUS, RoomUS, Create0#create.aff_users),
-    MaxOccupants = get_opt(To#jid.lserver, max_occupants, ?DEFAULT_MAX_OCCUPANTS),
-    case {mod_muc_light_utils:process_raw_config(RawConfig, default_config()),
-          process_create_aff_users_if_valid(To#jid.lserver, FromUS, InitialAffUsers)} of
+    MaxOccupants = get_opt(RoomS, max_occupants, ?DEFAULT_MAX_OCCUPANTS),
+    case {mod_muc_light_utils:process_raw_config(RawConfig, default_config(), config_schema(RoomS)),
+          process_create_aff_users_if_valid(RoomS, FromUS, InitialAffUsers)} of
         {{ok, Config0}, {ok, FinalAffUsers}} when length(FinalAffUsers) =< MaxOccupants ->
             Version = mod_muc_light_utils:bin_ts(),
             case ?BACKEND:create_room(RoomUS, Config0, FinalAffUsers, Version) of
