@@ -17,9 +17,15 @@
 %%% * rooms_per_page (10) - Maximal room count per result page in room disco
 %%% * rooms_in_rosters (false) - If enabled, rooms that user occupies will be included in
 %%%                              user's roster
-%%% * config_schema (undefined) - Custom list of configuration options for a room;
+%%% * config_schema (["roomname", "subject"]) - Custom list of configuration options for a room;
 %%%                               WARNING! Lack of `roomname` field will cause room names in
-%%%                               Disco results and Roster items be set to empty string.
+%%%                               Disco results and Roster items be set to room username.
+%%% * default_config ([{"roomname, "Untitled"}, {"subject", ""}]) -
+%%%                                Custom default room configuration; must be a subset of
+%%%                                config schema. It's a list of KV tuples with string keys
+%%%                                and values of appriopriate type. String values will be
+%%%                                converted to binary automatically.
+%%%        Example: [{"roomname", "The room"}, {"subject", "Chit-chat"}, {"security", 10}]
 %%%
 %%% Allowed `config_schema` list items (may be mixed):
 %%% * Just field name: "field" - will be expanded to "field" of type 'binary'
@@ -41,7 +47,8 @@
 -behaviour(gen_mod).
 
 %% API
--export([config_schema/1, default_config/0]).
+-export([standard_config_schema/0, standard_default_config/0]).
+-export([config_schema/1, default_config/1]).
 -export([get_opt/3, set_opt/3]).
 
 %% gen_mod callbacks
@@ -75,12 +82,14 @@
 %% API
 %%====================================================================
 
--spec default_config() -> config().
-default_config() ->
-    [
-     {roomname, <<"Untitled">>},
-     {subject, <<>>}
-    ].
+-spec standard_config_schema() -> config_schema().
+standard_config_schema() -> ["roomname", "subject"].
+
+-spec standard_default_config() -> config().
+standard_default_config() -> [{"roomname", "Untitled"}, {"subject", ""}].
+
+-spec default_config(MUCServer :: ejabberd:lserver()) -> config().
+default_config(MUCServer) -> get_opt(MUCServer, default_config, []).
 
 -spec config_schema(MUCServer :: ejabberd:lserver()) -> config_schema().
 config_schema(MUCServer) -> get_opt(MUCServer, config_schema, undefined).
@@ -146,8 +155,14 @@ start(Host, Opts) ->
 
     %% Prepare config schema
     ConfigSchema = mod_muc_light_utils:make_config_schema(
-                     gen_mod:get_opt(config_schema, Opts, undefined)),
+                     gen_mod:get_opt(config_schema, Opts, standard_config_schema())),
     set_opt(MyDomain, config_schema, ConfigSchema),
+
+    %% Prepare default config
+    DefaultConfig = mod_muc_light_utils:make_default_config(
+                      gen_mod:get_opt(default_config, Opts, standard_default_config()),
+                      ConfigSchema),
+    set_opt(MyDomain, default_config, DefaultConfig),
 
     ok.
 
@@ -363,7 +378,8 @@ create_room(From, FromUS, To, #create{ raw_config = RawConfig } = Create0, OrigP
     InitialAffUsers = mod_muc_light_utils:filter_out_prevented(
                         FromUS, RoomUS, Create0#create.aff_users),
     MaxOccupants = get_opt(RoomS, max_occupants, ?DEFAULT_MAX_OCCUPANTS),
-    case {mod_muc_light_utils:process_raw_config(RawConfig, default_config(), config_schema(RoomS)),
+    case {mod_muc_light_utils:process_raw_config(
+            RawConfig, default_config(RoomS), config_schema(RoomS)),
           process_create_aff_users_if_valid(RoomS, FromUS, InitialAffUsers)} of
         {{ok, Config0}, {ok, FinalAffUsers}} when length(FinalAffUsers) =< MaxOccupants ->
             Version = mod_muc_light_utils:bin_ts(),
@@ -443,10 +459,10 @@ handle_disco_items_get(From, To, DiscoItems0, OrigPacket) ->
 -spec get_rooms_info(Rooms :: [ejabberd:simple_bare_jid()]) -> [disco_room_info()].
 get_rooms_info([]) ->
     [];
-get_rooms_info([RoomUS | RRooms]) ->
+get_rooms_info([{RoomU, _} = RoomUS | RRooms]) ->
     {ok, Config, Version} = ?BACKEND:get_config(RoomUS),
     RoomName = case lists:keyfind(roomname, 1, Config) of
-                   false -> <<>>;
+                   false -> RoomU;
                    {_, RoomName0} -> RoomName0
                end,
     [{RoomUS, RoomName, Version} | get_rooms_info(RRooms)].
